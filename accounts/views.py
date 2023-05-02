@@ -1,35 +1,34 @@
-from rest_framework.views import APIView, Request, Response, status
-
+from accounts.permissions import IsAccountOnwer
 from .serializers import AccountSerializer
 from .models import Account
+from rest_framework import generics
 
-from django.shortcuts import get_object_or_404
-
-from utils.base_views import ListBaseView, CreateBaseView
-
-
-class AccountView(ListBaseView, CreateBaseView):
-    view_queryset = Account.objects.all()
-    view_serializer = AccountSerializer
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
+from drf_spectacular.utils import extend_schema
 
 
-class AccountDetailView(APIView):
-    def get(self, request: Request, pk: int) -> Response:
-        account = get_object_or_404(Account, pk=pk)
-        serializer = AccountSerializer(account)
+# MRO - Method Resolution Order
+class AccountView(generics.ListCreateAPIView):
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
 
-        return Response(serializer.data, status.HTTP_200_OK)
+    @extend_schema(
+        operation_id="accounts_list",
+        responses={200: AccountSerializer},
+        description="Rota de listagem de contas de usuários",
+        summary="Sumário Listagem de Contas de usuário",
+        tags=["Tag Listagem de Contas de usuários"],
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
-    def patch(self, request: Request, pk: int) -> Response:
-        account = get_object_or_404(Account, pk=pk)
-        serializer = AccountSerializer(account, request.data, partial=True)
-        serializer.is_valid()
-        serializer.save()
 
-        return Response(serializer.data, status.HTTP_200_OK)
+class AccountDetailView(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAccountOnwer]
 
-    def delete(self, request: Request, pk: int) -> Response:
-        account = get_object_or_404(Account, pk=pk)
-        account.delete()
+    queryset = Account.objects.all()
+    serializer_class = AccountSerializer
 
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    lookup_url_kwarg = "account_id"

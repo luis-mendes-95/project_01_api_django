@@ -19,3 +19,10 @@ class CpfCnpj(models.Model):
     celular = models.CharField(max_length=255, default='')
     email = models.CharField(max_length=255, default='')
     site = models.CharField(max_length=255, default='')
+
+    # 1:N - Account -> CpfCnpj
+    account = models.ForeignKey(
+        "accounts.Account",
+        on_delete=models.CASCADE,
+        related_name="cpf_cnpj",
+    )

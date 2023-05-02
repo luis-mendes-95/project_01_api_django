@@ -1,41 +1,39 @@
-from rest_framework.views import APIView, Request, Response, status
+from rest_framework import generics
+from cpf_cnpj.permissions import IsAdminOrCpfCnpjOwner
 from .serializers import CpfCnpjSerializer
 from .models import CpfCnpj
-from django.shortcuts import get_object_or_404
+from rest_framework_simplejwt.authentication import JWTAuthentication
+from rest_framework.permissions import IsAuthenticated
 
 
-class CpfCnpjView(APIView):
-    def get(self, request: Request) -> Response:
-        all_cpf_cnpj = CpfCnpj.objects.all()
-        serializer = CpfCnpjSerializer(all_cpf_cnpj, many=True)
+class CpfCnpjView(generics.ListCreateAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
-        return Response(serializer.data, status.HTTP_200_OK)
+    # queryset = CpfCnpj.objects.all()
+    serializer_class = CpfCnpjSerializer
 
-    def post(self, request: Request) -> Response:
-        serializer = CpfCnpjSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+    def get_queryset(self):
+        if self.request.user.is_superuser:
+            return CpfCnpj.objects.all()
 
-        return Response(serializer.data, status.HTTP_201_CREATED)
+        return CpfCnpj.objects.filter(account=self.request.user)
+
+    def perform_create(self, serializer) -> None:
+        # from ipdb import set_trace
+        # set_trace()
+
+        if self.request.user.is_staff == True or self.request.user.is_superuser == True:
+            serializer.save(account=self.request.user)
+        else:
+            raise PermissionError("Usuário sem permissão para criar CPF/CNPJ")
+
+        # serializer.save(account=self.request.user)
 
 
-class CpfCnpjDetailView(APIView):
-    def get(self, request: Request, pk: int) -> Response:
-        cpf_cnpj = get_object_or_404(CpfCnpj, pk=pk)
-        serializer = CpfCnpjSerializer(cpf_cnpj)
+class CpfCnpjDetailView(generics.RetrieveUpdateDestroyAPIView):
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated, IsAdminOrCpfCnpjOwner]
 
-        return Response(serializer.data, status.HTTP_200_OK)
-
-    def patch(self, request: Request, pk: int) -> Response:
-        cpf_cnpj = get_object_or_404(CpfCnpj, pk=pk)
-        serializer = CpfCnpjSerializer(cpf_cnpj, request.data, partial=True)
-        serializer.is_valid()
-        serializer.save()
-
-        return Response(serializer.data, status.HTTP_200_OK)
-
-    def delete(self, request: Request, pk: int) -> Response:
-        cpf_cnpj = get_object_or_404(CpfCnpj, pk=pk)
-        cpf_cnpj.delete()
-
-        return Response(status=status.HTTP_204_NO_CONTENT)
+    queryset = CpfCnpj.objects.all()
+    serializer_class = CpfCnpjSerializer
