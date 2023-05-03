@@ -59,6 +59,7 @@ DJANGO_APPS = [
 MY_APPS = [
     "accounts",
     "cpf_cnpj",
+    "corsheaders",
 ]
 
 THIRD_PARTY_APPS = [
@@ -79,6 +80,12 @@ MIDDLEWARE = [
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
+    'corsheaders.middleware.CorsMiddleware',
+]
+
+CORS_ALLOWED_ORIGINS = [
+	'http://localhost:3000',
+    'https://project01-api-render.onrender.com',
 ]
 
 ROOT_URLCONF = "_core.urls"
